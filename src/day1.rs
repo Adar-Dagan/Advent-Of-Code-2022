@@ -1,9 +1,9 @@
 fn main() {
-    let contents = include_str!("day1.input");
+    const CONTENTS: &str = include_str!("day1.input");
 
-    let elves = contents.split("\n\n");
+    let elves = CONTENTS.split("\n\n");
 
-    let mut max = [0, 0, 0];
+    let mut max = [0; 3];
 
     for elf in elves {
         let mut total = 0;
