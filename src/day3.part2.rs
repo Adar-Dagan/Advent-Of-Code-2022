@@ -1,9 +1,7 @@
+use std::collections::HashSet;
 use std::iter::zip;
-use std::{collections::HashSet, time::Instant};
 
 fn main() {
-    let now = Instant::now();
-
     const CONTENTS: &str = include_str!("day3.input");
 
     let rucksacks = CONTENTS.lines();
@@ -51,8 +49,6 @@ fn main() {
 
         acc + common_letter_value
     });
-
-    println!("{}", now.elapsed().as_nanos());
 
     println!("Total: {total}");
 }
