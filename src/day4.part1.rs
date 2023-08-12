@@ -16,10 +16,6 @@ impl Elf {
     fn contains(&self, other: Elf) -> bool {
         self.start <= other.start && other.end <= self.end
     }
-
-    fn overlaps(&self, other: Elf) -> bool {
-        other.end >= self.start && self.end >= other.start
-    }
 }
 
 fn main() {
@@ -31,7 +27,11 @@ fn main() {
         let first_elf = Elf::new(first_elf_string);
         let second_elf = Elf::new(second_elf_string);
 
-        acc + if first_elf.overlaps(second_elf) { 1 } else { 0 }
+        acc + if first_elf.contains(second_elf) || second_elf.contains(first_elf) {
+            1
+        } else {
+            0
+        }
     });
 
     println!("Total: {total}");
