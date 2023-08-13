@@ -25,11 +25,10 @@ fn main() {
     move_instructions.lines().for_each(|line| {
         let (number_to_move, from, to) = parse_move_line(line);
 
-        let from_length = stacks[from].len();
-        let mut drain = stacks[from]
-            .drain(from_length - number_to_move..)
-            .collect::<Vec<_>>();
-        stacks[to].append(&mut drain);
+        for _ in 0..number_to_move {
+            let crate_to_move = stacks[from].pop().unwrap();
+            stacks[to].push(crate_to_move);
+        }
     });
 
     stacks.iter().for_each(|stack| {
@@ -40,15 +39,17 @@ fn main() {
 }
 
 fn parse_move_line(line: &str) -> (usize, usize, usize) {
-    let mut line_iterator = line
-        .split_whitespace()
-        .skip(1)
-        .step_by(2)
-        .map(|s| s.parse::<usize>().unwrap());
+    let mut line_iterator = line.split_whitespace().skip(1);
 
-    (
-        line_iterator.next().unwrap(),
-        line_iterator.next().unwrap() - 1,
-        line_iterator.next().unwrap() - 1,
-    )
+    let number_to_move = line_iterator.next().unwrap().parse::<usize>().unwrap();
+
+    line_iterator.next();
+
+    let from = line_iterator.next().unwrap().parse::<usize>().unwrap() - 1;
+
+    line_iterator.next();
+
+    let to = line_iterator.next().unwrap().parse::<usize>().unwrap() - 1;
+
+    (number_to_move, from, to)
 }
