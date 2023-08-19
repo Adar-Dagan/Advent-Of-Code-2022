@@ -10,11 +10,11 @@ struct Dir {
 }
 
 impl Dir {
-    fn update_size(&mut self, size: i32) {
-        self.size += size;
-        if let Some(parent) = self.parent.upgrade() {
-            parent.borrow_mut().update_size(size);
+    fn calculate_size(&mut self) -> i32 {
+        for subdir in self.subdirs.values() {
+            self.size += subdir.borrow_mut().calculate_size();
         }
+        self.size
     }
 
     fn get_subdir_under_100000(&self, vec: &mut Vec<i32>) {
@@ -25,82 +25,70 @@ impl Dir {
             }
         }
     }
-
-    fn smallest_over_size(&self, size: i32) -> i32 {
-        let mut smallest = i32::MAX;
-        for subdir in self.subdirs.values().map(|x| x.borrow()) {
-            let subdir_smallest = subdir.smallest_over_size(size);
-            if subdir_smallest < smallest {
-                smallest = subdir_smallest;
-            }
-        }
-        if self.size > size && self.size < smallest {
-            smallest = self.size;
-        }
-        smallest
-    }
 }
 
 struct DirTree {
     root: Rc<RefCell<Dir>>,
-    current_dir: Weak<RefCell<Dir>>,
+    current_dir: Rc<RefCell<Dir>>,
 }
 
 impl DirTree {
     pub fn new() -> Self {
-        let root = DirTree::new_node(Weak::new());
+        let root = Rc::new(RefCell::new(Dir {
+            parent: Weak::new(),
+            subdirs: HashMap::new(),
+            size: 0,
+        }));
 
         DirTree {
             root: root.clone(),
-            current_dir: Rc::downgrade(&root),
+            current_dir: root.clone(),
         }
-    }
-
-    fn new_node(parent: Weak<RefCell<Dir>>) -> Rc<RefCell<Dir>> {
-        Rc::new(RefCell::new(Dir {
-            parent,
-            subdirs: HashMap::new(),
-            size: 0,
-        }))
-    }
-
-    fn get_current(&self) -> Rc<RefCell<Dir>> {
-        self.current_dir.upgrade().unwrap()
     }
 
     fn goto_dir(&mut self, dir_name: &str) {
         self.current_dir = match dir_name {
-            ".." => self.get_current().borrow().parent.clone(),
-            "/" => Rc::downgrade(&self.root),
-            _ => Rc::downgrade(
-                self.get_current()
-                    .borrow()
-                    .subdirs
-                    .get(dir_name)
-                    .expect("dir not found"),
-            ),
+            ".." => self
+                .current_dir
+                .borrow()
+                .parent
+                .upgrade()
+                .expect("parent not found")
+                .clone(),
+            "/" => self.root.clone(),
+            _ => self
+                .current_dir
+                .borrow()
+                .subdirs
+                .get(dir_name)
+                .expect("dir not found")
+                .clone(),
         }
     }
 
     fn add_subdir(&self, new_dir_name: &str) {
-        self.get_current().borrow_mut().subdirs.insert(
+        self.current_dir.borrow_mut().subdirs.insert(
             new_dir_name.to_string(),
-            DirTree::new_node(self.current_dir.clone()),
+            Rc::new(RefCell::new(Dir {
+                parent: Rc::downgrade(&self.current_dir),
+                subdirs: HashMap::new(),
+                size: 0,
+            })),
         );
     }
 
     fn add_size(&self, size: i32) {
-        self.get_current().borrow_mut().update_size(size)
+        self.current_dir.borrow_mut().size += size;
     }
 
-    fn sum_of_dir_sizes_under_100000(&self) -> i32 {
+    fn calculate_sizes(&self) {
+        self.root.borrow_mut().calculate_size();
+    }
+
+    fn sum_of_dir_sizes_under10000(&self) -> i32 {
         let mut vec = Vec::new();
         self.root.borrow().get_subdir_under_100000(&mut vec);
         vec.iter().sum()
-    }
-
-    fn smallest_over_size(&self, size: i32) -> i32 {
-        self.root.borrow().smallest_over_size(size)
     }
 }
 
@@ -129,7 +117,8 @@ fn main() {
         }
     }
 
-    let total = dir_tree.smallest_over_size(30000000 - (70000000 - dir_tree.root.borrow().size));
+    dir_tree.calculate_sizes();
+    let total = dir_tree.sum_of_dir_sizes_under10000();
 
     println!("{}", total);
 }
