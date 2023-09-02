@@ -99,7 +99,6 @@ fn main() {
         "{}",
         monkeys[0].borrow().items_inspected * monkeys[1].borrow().items_inspected
     );
-    println!("{}", lcm);
 }
 
 // Just for fun
